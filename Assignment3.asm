@@ -345,7 +345,6 @@ printstatement:
 	jr   $ra             # Return to where called
 	
 
-
 #####################################################################
 ## The subroutine readhex is provided to read in a Hex number up   ##
 ## to 8 digits long, producing 32-bit integer result, returned in  ##
