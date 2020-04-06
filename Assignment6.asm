@@ -54,8 +54,10 @@ menu:    .ascii "\n\nPlease select one of the following"
 	 .ascii	"\n\t2} Add person"
 	 .asciiz "\n\t3} Exit"
 	 
-empty:    .asciiz ""
-	 
+empty:    .asciiz "list is empty"
+
+newline:  .asciiz "\n\n"
+
 listheader: .asciiz "\n-------- List Contents ----------"
 	 
 endMessage: .asciiz "\nThanks for the info, have a good day!"
@@ -63,6 +65,7 @@ choice:  .asciiz "\n\n\tWhich option between 1 and 3 do you choose? "
 
 name:    .asciiz "\n\nPlease enter a name (up to 40 characters): "
 age:     .asciiz "\nPlease enter the age for "
+nonext:  .asciiz "\nno new next"
 
 userString: 		.space  40
 
@@ -148,14 +151,126 @@ printList:
 	la $a0, listheader
 	syscall
 
+	beqz $a3, emptylist
+
+
+	#beqz $t0, emptylist
+looplist:
+
+	li $v0, 4
+	la $a0, newline
+	syscall
+
+	#sep0
+	la $t2, ($a3)	
+
+	li $v0, 4
+	la $a0, newline
+	syscall
+	
+	li $v0, 4
+	lw $a0, ($t2)
+	syscall
+	
+	li $v0, 4
+	la $a0, newline
+	syscall
+	
+	li $v0, 1
+	lw $a0, 40($t2)
+	syscall
+
+	li $v0, 4
+	la $a0, newline
+	syscall
+
+	li $v0, 1
+	lw $a0, 44($t2)
+	syscall
+	
+	li $v0, 4
+	la $a0, newline
+	syscall
+	
+	#sep1
+	lw $t2, 44($t2)
+	
+	li $v0, 4
+	la $a0, newline
+	syscall
+	
+	li $v0, 4
+	la $a0, newline
+	syscall
+	
+	li $v0, 4
+	lw $a0, ($t2)
+	syscall
+		
+	li $v0, 4
+	la $a0, newline
+	syscall
+	
+	li $v0, 1
+	lw $a0, 40($t2)
+	syscall
+
+	li $v0, 4
+	la $a0, newline
+	syscall
+
+	li $v0, 1
+	lw $a0, 44($t2)
+	syscall
+	
+	#sep2
+	lw $t2, 44($t2)
+	
+	li $v0, 4
+	la $a0, newline
+	syscall
+	
+	li $v0, 4
+	la $a0, newline
+	syscall
+	
+	li $v0, 4
+	lw $a0, ($t2)
+	syscall
+		
+	li $v0, 4
+	la $a0, newline
+	syscall
+	
+	li $v0, 1
+	lw $a0, 40($t2)
+	syscall
+
+	li $v0, 4
+	la $a0, newline
+	syscall
+
+	li $v0, 1
+	lw $a0, 44($t2)
+	syscall
+	#jal findNext
+	
 	j guideChoice
 	
 addPerson:
 	jal getName
 	jal getAge
-
+	jal alloSpace
+	jal initializeNode
+	jal loadvariables
+	jal addNode
 	j guideChoice
-	
+
+######################################################################
+# Gets a name from the user
+######################################################################
+# Stores value of Name in register $t7
+######################################################################
 getName:
         addi $sp, $sp, -4   # make room for 1 registers on the stack
 	sw   $ra, 0($sp)    # save $ra onto the stack
@@ -184,11 +299,22 @@ getName:
 	li $t5, 0    # $t1 is the counter. set it to 0 
 	jal countChr
 	
+	la $t7, userString
+	
+	#li $v0, 4
+	#move $a0, $t7
+	#syscall
+	
 	lw   $ra, 0($sp)     # pop $ra from the stack
 	addi $sp, $sp, 4     # free the stack by changing the stack pointer
 	
 	jr $ra
-	
+
+######################################################################
+# Gets a age from the user
+######################################################################
+# Stores value of Name in register $t4
+######################################################################
 getAge:
 	li $v0, 4
 	la $a0, age
@@ -219,4 +345,91 @@ countChr:
 remove: 
 	sb $0, 0($t0)
 	jr $ra
+
+#allocate space in the heap
+alloSpace:
+	li	$v0, 9
+	li	$a0, 48 # allocates 48 bytes, 4 to point to age, 12 for string and 4 for next
+	syscall
+	jr	$ra
+
+initializeNode:
+	move	$t1, $v0	# register t1 now has the address to the allocated space (12 bytes)
+	
+	sw	$zero, 40($t1)	# initalize age to zero
+	sw	$zero, 44($t1)	# initialized next to zero
+	jr $ra
+
+loadvariables:
+	sw $t7, ($t1)
+	sw $t4, 40($t1)
+	jr $ra 
+	
+addNode:
+	#move $a0, $t7
+	#li $v0, 4
+	#syscall
+	
+	#lw $a0, ($t1)
+	#li $v0, 4
+	#syscall
+	
+	beqz	$s7, declareFirstNode
+	#li $v0, 4
+	#la $a0, nonext
+	#syscall
+	
+
+	
+	#lw $a0, 48($a3)	# check for next node of current node
+	#move $a0, $t2
+	#li $v0, 4
+	#syscall
+	
+	#li $v0, 4
+	#la $a0, nonext
+	#syscall
+	
+	#lw $a0, 40($a3)	# check for next node of current node
+	#move $a0, $t2
+	#li $v0, 1
+	#syscall
+	
+	#lw	$t2, 44($a3)	# check for next node of current node
+	
+	#beqz	$t2, noNextNode
+	j NextNode
+	
+	
+declareFirstNode:
+	la	$s7, ($t1)	#set head pointer to point to string in the new node
+	la	$a3, ($t1)	#set curr pointer to point to string in the new node
+	j guideChoice
+	
+NextNode:
+	li $v0, 4
+	la $a0, nonext
+	syscall
+	
+	#store head to temp $t2
+	#la $t2, ($a3)
+	# save next to to temp $t1 address
+	sw $a3, 44($t1)	# initialized next to
+	la $a3, ($t1)
+	
+	
+	
+	j guideChoice
+	
+emptylist:
+	li $v0, 4
+	la $a0, empty
+	syscall
+	
+	j guideChoice
+	
+findNext:
+	la $t2, 44($t2)
+	beqz $t2, guideChoice
+	j looplist
 	
