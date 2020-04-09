@@ -54,56 +54,39 @@ menu:    .ascii "\n\nPlease select one of the following"
 	 .ascii	"\n\t2} Add person"
 	 .asciiz "\n\t3} Exit"
 	 
-empty:    .asciiz "list is empty"
+empty:    .asciiz "\n\nThe list is empty, nothing to print."
 
-newline:  .asciiz "\n\n"
+newline:  .asciiz "\n"
 
-listheader: .asciiz "\n-------- List Contents ----------"
+listheader: .asciiz "\n-------- List Contents ----------\n"
 	 
 endMessage: .asciiz "\nThanks for the info, have a good day!"
 choice:  .asciiz "\n\n\tWhich option between 1 and 3 do you choose? "
 
-name:    .asciiz "\n\nPlease enter a name (up to 40 characters): "
-age:     .asciiz "\nPlease enter the age for "
-nonext:  .asciiz "\nno new next"
+name:    .asciiz "\nPlease enter a name (up to 40 characters): "
+age:     .asciiz "Please enter the age for "
 
-userString: 		.space  40
-
+listprintname: .asciiz "Name: "
+listprintage: .asciiz "Age: "
+tabs:         .asciiz " \t"
 
 	.text              # Executable code follows
-	
+
+
 main:
 # initialize t1 as a counter and s0 as the upper bound for non-printable characters
 
     	li $s0, 32   # $s3 is the upper bound
     	
-	jal printWelcome
-	j guideChoice
-# Include your code here
-
-end:
-	li $v0, 4
-	la $a0, endMessage
-	syscall
-
-	li    $v0, 10          # terminate program run and
-	syscall                # return control to system
-# END OF PROGRAM
-
-######################################################################
-# Prints a welcome message
-######################################################################
-# saves no registers
-######################################################################
-printWelcome:
-	li $v0, 4
+    	#print welcome message
+    	li $v0, 4
 	la $a0, welcome
 	syscall
-	
-	jr $ra 
+    	
+	j printMenu
 	
 ######################################################################
-# Prints the menu options
+# Prints the menu options and drops to reach
 ######################################################################
 # No registers were saved
 ######################################################################
@@ -112,103 +95,55 @@ printMenu:
 	la $a0, menu
 	syscall
 
-######################################################################
-# Prints the menu options
-######################################################################
-# No registers were saved
-######################################################################
 readChoice:
-	# Ask for a choice
-	li $v0, 4
+	li $v0, 4  # Ask for a choice
 	la $a0, choice
-	syscall
-		
-	# Get the integer for the choice
-	li $v0, 5
+	syscall	
+	
+	li $v0, 5 # Get the integer for the choice
 	syscall
 	
-	# move it to $t0
-	move $t0, $v0
+	move $t0, $v0 # temporarily store choice in $t0
+
+	ble $t0, 0, readChoice	# check if the number is in the 1 to 3 range if not ask for another
+	bge $t0, 4, readChoice	# choice
 	
-	# check if the number is in the 1 to 3 range if not ask for another
-	# choice
-	ble $t0, 0, readChoice
-	bge $t0, 4, readChoice
+	beq $t0, 1, printList #branch to the respective choice
+        beq $t0, 2, addPerson
+        beq $t0, 3, end
 	
 	jr $ra
 
-guideChoice:
-	jal printMenu
-	j executeChoice
-	
-executeChoice:
-	beq $t0, 1, printList
-        beq $t0, 2, addPerson
-        beq $t0, 3, end
-       
+######################################################################
+# Prints the list of nodes in FILO order
+######################################################################
+# Uses $t2 to traverse the nodes, head is $a3
+######################################################################
 printList:
+	beqz $a3, emptylist
+	
 	li $v0, 4
 	la $a0, listheader
-	syscall
-
-	beqz $a3, emptylist
-
-
-	#beqz $t0, emptylist
-looplist:
-
-	li $v0, 4
-	la $a0, newline
-	syscall
-
-	#sep0
+	syscall	
+	
 	la $t2, ($a3)	
 
+looplist:
 	li $v0, 4
-	la $a0, newline
-	syscall
-	
-	li $v0, 4
-	lw $a0, ($t2)
-	syscall
-	
-	li $v0, 4
-	la $a0, newline
-	syscall
-	
-	li $v0, 1
-	lw $a0, 40($t2)
+	la $a0, listprintname
 	syscall
 
 	li $v0, 4
-	la $a0, newline
-	syscall
-
-	li $v0, 1
-	lw $a0, 44($t2)
-	syscall
-	
-	li $v0, 4
-	la $a0, newline
-	syscall
-	
-	#sep1
-	lw $t2, 44($t2)
-	
-	li $v0, 4
-	la $a0, newline
-	syscall
-	
-	li $v0, 4
-	la $a0, newline
-	syscall
-	
-	li $v0, 4
-	lw $a0, ($t2)
+	la $a0, ($t2)
 	syscall
 		
 	li $v0, 4
-	la $a0, newline
+	la $a0, tabs
+	syscall
+	
+	
+	li $v0, 4
+	la $a0, listprintage
 	syscall
 	
 	li $v0, 1
@@ -219,217 +154,101 @@ looplist:
 	la $a0, newline
 	syscall
 
-	li $v0, 1
-	lw $a0, 44($t2)
-	syscall
-	
-	#sep2
 	lw $t2, 44($t2)
-	
-	li $v0, 4
-	la $a0, newline
-	syscall
-	
-	li $v0, 4
-	la $a0, newline
-	syscall
-	
-	li $v0, 4
-	lw $a0, ($t2)
-	syscall
-		
-	li $v0, 4
-	la $a0, newline
-	syscall
-	
-	li $v0, 1
-	lw $a0, 40($t2)
-	syscall
 
-	li $v0, 4
-	la $a0, newline
-	syscall
+	beqz $t2, printMenu
+	
+	j looplist
 
-	li $v0, 1
-	lw $a0, 44($t2)
+emptylist:
+	li $v0, 4
+	la $a0, empty
 	syscall
-	#jal findNext
 	
-	j guideChoice
-	
+	j printMenu
+
+######################################################################
+# Gets a name, age from the user, and if there is a next, assigns it
+######################################################################
+# $t1 is used for assigning the node, $a3 is used for storing the nodes
+######################################################################
 addPerson:
-	jal getName
-	jal getAge
-	jal alloSpace
-	jal initializeNode
-	jal loadvariables
-	jal addNode
-	j guideChoice
-
-######################################################################
-# Gets a name from the user
-######################################################################
-# Stores value of Name in register $t7
-######################################################################
-getName:
-        addi $sp, $sp, -4   # make room for 1 registers on the stack
-	sw   $ra, 0($sp)    # save $ra onto the stack
-	
 	li $v0, 4
 	la $a0, name
 	syscall
 	
-	la $a0, userString
+	#allocate space
+	li	$v0, 9
+	li	$a0, 48 # allocates 48 bytes, 4 to point to age, 12 for string and 4 for next
+	syscall
+
+	#initialize the nodes
+	move	$t1, $v0	# register t1 now has the address to the allocated space (48 bytes)
+	sw	$zero, 40($t1)	# initalize age to zero
+	sw	$zero, 44($t1)	# initalize age to zero
+	
+	#load the user name into the newly allocated space for it
+	la $a0, ($t1)
 	li $v0, 8
 	li $a1, 40
 	syscall
 	
 	move $t0, $a0
-	#la $t0, userString
-	
-	li $v0, 4
-	la $a0, listheader
+
+countChr:  
+	lb $t2, 0($t0)  # Load the first byte from address in $t0 
+    	blt $t2, $s0, remove # if this is a nonprintable character make it an endline instead of newline,
+    	add $t0, $t0, 1 # also increment the t0 address by 1 and jump back to the top
+    	j countChr        
+
+#replace any nonprintable with an endline    	
+remove: 
+	sb $0, 0($t0)
+
+	#get the age the user enters
+	li $v0, 4 #message to get user age
+	la $a0, age
 	syscall
 	
-	li $v0, 4
-	move $a0, $t0
+	li $v0, 4 #print inserted name
+	la $a0, ($t1)
+	syscall	
+	
+	li $v0, 11 #print a colon
+	li $a0, 58
+	syscall	
+
+	li $v0, 11 #print a space
+	li $a0, 32
+	syscall	
+
+	li $v0, 5 #read the age in
 	syscall
+	
+	#save the age to the memory allocated for it
+	sw $v0, 40($t1)
 
-
-	li $t5, 0    # $t1 is the counter. set it to 0 
-	jal countChr
+	beqz $a3, declareFirstNode #if first node get don't use it's address as next
 	
-	la $t7, userString
+	sw $a3, 44($t1)	# initialized address of current node to next
+	la $a3, ($t1) #push node
 	
-	#li $v0, 4
-	#move $a0, $t7
-	#syscall
+	j printMenu
 	
-	lw   $ra, 0($sp)     # pop $ra from the stack
-	addi $sp, $sp, 4     # free the stack by changing the stack pointer
-	
-	jr $ra
+declareFirstNode:
+	la $a3, ($t1)	#push first node
+	j printMenu
 
 ######################################################################
 # Gets a age from the user
 ######################################################################
 # Stores value of Name in register $t4
 ######################################################################
-getAge:
+end:
 	li $v0, 4
-	la $a0, age
+	la $a0, endMessage
 	syscall
 
-	li $v0, 5
-	syscall
-	
-	move $t4, $v0
-	
-	jr $ra
-	
-
-#print a message about each byte being displayed and its number in the index
-countChr:  
-# Load the first byte from address in $t0 
-	lb $t2, 0($t0)  
-# if this is a nonprintable character make it an endline instead of newline,
-    	blt $t2, $s0, remove
-
-# also increment the t0 and t1 address by 1 and jump back to the top
-    	    	
-    	add $t0, $t0, 1   
-    	add $t5, $t5, 1   
-    	j countChr        
-
-#replace any nonprintable with an endline    	
-remove: 
-	sb $0, 0($t0)
-	jr $ra
-
-#allocate space in the heap
-alloSpace:
-	li	$v0, 9
-	li	$a0, 48 # allocates 48 bytes, 4 to point to age, 12 for string and 4 for next
-	syscall
-	jr	$ra
-
-initializeNode:
-	move	$t1, $v0	# register t1 now has the address to the allocated space (12 bytes)
-	
-	sw	$zero, 40($t1)	# initalize age to zero
-	sw	$zero, 44($t1)	# initialized next to zero
-	jr $ra
-
-loadvariables:
-	sw $t7, ($t1)
-	sw $t4, 40($t1)
-	jr $ra 
-	
-addNode:
-	#move $a0, $t7
-	#li $v0, 4
-	#syscall
-	
-	#lw $a0, ($t1)
-	#li $v0, 4
-	#syscall
-	
-	beqz	$s7, declareFirstNode
-	#li $v0, 4
-	#la $a0, nonext
-	#syscall
-	
-
-	
-	#lw $a0, 48($a3)	# check for next node of current node
-	#move $a0, $t2
-	#li $v0, 4
-	#syscall
-	
-	#li $v0, 4
-	#la $a0, nonext
-	#syscall
-	
-	#lw $a0, 40($a3)	# check for next node of current node
-	#move $a0, $t2
-	#li $v0, 1
-	#syscall
-	
-	#lw	$t2, 44($a3)	# check for next node of current node
-	
-	#beqz	$t2, noNextNode
-	j NextNode
-	
-	
-declareFirstNode:
-	la	$s7, ($t1)	#set head pointer to point to string in the new node
-	la	$a3, ($t1)	#set curr pointer to point to string in the new node
-	j guideChoice
-	
-NextNode:
-	li $v0, 4
-	la $a0, nonext
-	syscall
-	
-	#store head to temp $t2
-	#la $t2, ($a3)
-	# save next to to temp $t1 address
-	sw $a3, 44($t1)	# initialized next to
-	la $a3, ($t1)
-	
-	
-	
-	j guideChoice
-	
-emptylist:
-	li $v0, 4
-	la $a0, empty
-	syscall
-	
-	j guideChoice
-	
-findNext:
-	la $t2, 44($t2)
-	beqz $t2, guideChoice
-	j looplist
-	
+	li    $v0, 10          # terminate program run and
+	syscall                # return control to system
+# END OF PROGRAM
